@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Builder - Pro Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        .step-hidden { display: none; }
+        .step-active { display: block; animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .markdown-body pre { background-color: #1e293b; color: #f8fafc; padding: 1.5rem; border-radius: 0.5rem; overflow-x: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+        .markdown-body h1 { font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; color: #1e293b;}
+        .markdown-body h2 { font-size: 1.25rem; font-weight: bold; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #334155;}
+        .markdown-body ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+        .sidebar-item { transition: all 0.3s ease; border-left: 4px solid transparent; }
+        .sidebar-active { border-left-color: #4f46e5; background-color: #e0e7ff; color: #4f46e5; font-weight: bold; }
+        .sidebar-completed { border-left-color: #10b981; color: #10b981; }
+        
+        /* Custom Checkbox */
+        .cb-container { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .cb-label {
+            display: inline-flex; align-items: center; padding: 0.5rem 1rem; background-color: #f8fafc; 
+            border: 1px solid #cbd5e1; border-radius: 9999px; cursor: pointer; transition: all 0.2s;
+            font-size: 0.875rem;
+        }
+        .cb-label:hover { background-color: #f1f5f9; }
+        input[type="checkbox"]:checked + .cb-label {
+            background-color: #e0e7ff; border-color: #6366f1; color: #4338ca; font-weight: 600;
+        }
+
+        /* Metric badge in multi-select */
+        .metric-badge {
+            display: inline-flex; align-items: center; padding: 0.25rem 0.5rem; background-color: #f1f5f9; 
+            border: 1px solid #cbd5e1; border-radius: 0.25rem; cursor: pointer; transition: all 0.2s;
+            font-size: 0.75rem; color: #475569; margin: 0.25rem 0.25rem 0 0;
+        }
+        .metric-badge:hover { background-color: #e2e8f0; }
+        input[type="checkbox"].chart-metric-cb:checked + .metric-badge {
+            background-color: #dbeafe; border-color: #3b82f6; color: #1d4ed8; font-weight: bold;
+        }
+        
+        /* Custom Radio Card */
+        .radio-card { border: 2px solid #e2e8f0; border-radius: 0.5rem; padding: 1rem; cursor: pointer; transition: all 0.2s; }
+        .radio-card:hover { border-color: #cbd5e1; background-color: #f8fafc; }
+        input[type="radio"]:checked + .radio-card { border-color: #6366f1; background-color: #e0e7ff; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen text-gray-800 flex items-center justify-center py-10">
+
+<div class="max-w-6xl w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[750px]">
+    
+    <!-- Left Sidebar: Step Indicator -->
+    <aside class="w-full md:w-1/4 bg-gray-50 border-r border-gray-200 p-6 flex flex-col">
+        <div class="mb-8">
+            <h1 class="text-2xl font-extrabold text-indigo-700 tracking-tight"><i class="fa-solid fa-layer-group mr-2"></i>Prompt Builder</h1>
+            <p class="text-xs text-gray-500 mt-1">Senior AE Edition</p>
+        </div>
+        
+        <nav class="flex-1 space-y-2">
+            <div id="nav-1" class="sidebar-item sidebar-active p-3 rounded-r-lg text-sm">
+                <span class="inline-block w-6 text-center mr-2"><i class="fa-solid fa-user-tie"></i></span> 1. 역할 설정
+            </div>
+            <div id="nav-2" class="sidebar-item p-3 rounded-r-lg text-sm text-gray-500">
+                <span class="inline-block w-6 text-center mr-2"><i class="fa-solid fa-database"></i></span> 2. 데이터 명세
+            </div>
+            <div id="nav-3" class="sidebar-item p-3 rounded-r-lg text-sm text-gray-500">
+                <span class="inline-block w-6 text-center mr-2"><i class="fa-solid fa-chart-pie"></i></span> 3. 시각화 기획
+            </div>
+            <div id="nav-4" class="sidebar-item p-3 rounded-r-lg text-sm text-gray-500">
+                <span class="inline-block w-6 text-center mr-2"><i class="fa-solid fa-laptop-code"></i></span> 4. 기술 스택
+            </div>
+            <div id="nav-5" class="sidebar-item p-3 rounded-r-lg text-sm text-gray-500">
+                <span class="inline-block w-6 text-center mr-2"><i class="fa-solid fa-flag-checkered"></i></span> 5. 결과 확인
+            </div>
+        </nav>
+        
+        <div class="mt-auto pt-6 text-xs text-gray-400 text-center">
+            Powered by Gemini AI & Django
+        </div>
+    </aside>
+
+    <!-- Right Main Content -->
+    <main class="w-full md:w-3/4 p-8 relative overflow-y-auto">
+        
+        <!-- Step 1: Role -->
+        <div id="step-1" class="step-active">
+            <h2 class="text-3xl font-bold mb-2">1. 역할 설정 (Role/Persona)</h2>
+            <p class="text-gray-500 mb-6">대시보드를 기획하고 검토할 타겟 페르소나를 명확히 정의합니다.</p>
+            
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded-r-lg shadow-sm">
+                <p class="font-bold text-blue-800 flex items-center"><i class="fa-solid fa-lightbulb text-yellow-500 mr-2 text-lg"></i>시니어 AE의 가이드 팁</p>
+                <p class="text-sm text-blue-700 mt-2">프롬프트에서 '역할'을 지정하면 AI가 해당 직무의 전문 용어와 관점을 반영하여 코드를 작성합니다. 타겟이 명확할수록 비즈니스 핏(Fit)이 완벽해집니다.</p>
+            </div>
+            
+            <div class="space-y-4 mb-6">
+                <!-- Card 1 -->
+                <label class="block relative">
+                    <input type="radio" name="role_persona" value="너는 디지털 광고 대행사의 10년 차 시니어 AE이자, **파이썬 기반 마케팅 자동화 및 웹 대시보드(Streamlit/Django) 개발 경력 7년 차인 풀스택 데이터 엔지니어**야. 광고주 보고용에 걸맞게 거시적 지표의 가중 평균 재계산 로직과 깔끔한 대시보드 레이아웃을 버그 없이 설계하는 장인이야." class="hidden" checked>
+                    <div class="radio-card">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="text-xl font-bold flex items-center">👑 시니어 AE <span class="ml-3 inline-block bg-indigo-100 text-indigo-700 text-xs px-2 py-1 rounded font-bold">개발 역량: Python 대시보드 경력 7년</span></h4>
+                                <p class="text-sm font-semibold text-gray-600 mt-2">광고주 보고 및 비즈니스 성과 최적화의 대가</p>
+                                <p class="text-xs text-gray-500 mt-1">거시적 지표의 가중 평균 재계산 로직과 깔끔한 대시보드 레이아웃 설계에 특화되어 있습니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </label>
+
+                <!-- Card 2 -->
+                <label class="block relative">
+                    <input type="radio" name="role_persona" value="너는 효율 최적화에 미친 퍼포먼스 마케터이자, **파이썬 데이터 분석(Pandas) 및 주요 광고 매체(Meta, Google) API 연동 개발 경력 5년 차인 데이터 사이언티스트**야. 소재라벨명, 키워드 단위의 미시적 대용량 로 데이터를 효율적으로 파싱(Parsing)하고, 대시보드 속도 저하 없이 다차원 필터링 연동(JS/Python) 코드를 최적화하는 전문가야." class="hidden">
+                    <div class="radio-card">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="text-xl font-bold flex items-center">📊 퍼포먼스 마케터 <span class="ml-3 inline-block bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded font-bold">개발 역량: Pandas/API 연동 경력 5년</span></h4>
+                                <p class="text-sm font-semibold text-gray-600 mt-2">로 데이터를 쪼개어 숨은 효율을 찾아내는 그로스 해커</p>
+                                <p class="text-xs text-gray-500 mt-1">대용량 로 데이터 파싱 및 다차원 필터링 연동 코드 최적화에 특화되어 있습니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </label>
+
+                <!-- Card 3 -->
+                <label class="block relative">
+                    <input type="radio" name="role_persona" value="너는 다매체 예산 최적화 전문가이자, **파이썬(Django) 및 복합 시각화(Plotly/D3.js) 라이브러리를 다룬 지 8년 된 시니어 웹 프로그래머**야. 다양한 매체 데이터를 단일 데이터베이스 모델로 깔끔하게 정규화하고, 복잡한 다중 지표(차트 내 콤비네이션) 시각화를 안정적으로 처리하는 웹 아키텍처 구축의 대가야." class="hidden">
+                    <div class="radio-card">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="text-xl font-bold flex items-center">🌐 미디어 바이어 <span class="ml-3 inline-block bg-green-100 text-green-700 text-xs px-2 py-1 rounded font-bold">개발 역량: 웹 아키텍처/시각화 경력 8년</span></h4>
+                                <p class="text-sm font-semibold text-gray-600 mt-2">다매체 믹스 및 전사 예산 분배의 전략가</p>
+                                <p class="text-xs text-gray-500 mt-1">데이터 정규화 및 복잡한 다중 지표 시각화를 안정적으로 처리하는 아키텍처 구축에 특화되어 있습니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </label>
+            </div>
+            
+            <div class="flex justify-end mt-4 pt-4 border-t">
+                <button onclick="goToStep(2)" class="bg-indigo-600 text-white font-bold px-8 py-3 rounded-xl shadow-lg hover:bg-indigo-700 transition transform hover:-translate-y-0.5">다음 단계 <i class="fa-solid fa-arrow-right ml-2"></i></button>
+            </div>
+        </div>
+
+        <!-- Step 2: Data Spec -->
+        <div id="step-2" class="step-hidden">
+            <h2 class="text-3xl font-bold mb-2">2. 데이터 명세 (Data Spec)</h2>
+            <p class="text-gray-500 mb-6">리포트에 포함될 필수 성과 지표를 카테고리별로 선택해 주세요.</p>
+            
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded-r-lg shadow-sm">
+                <p class="font-bold text-blue-800 flex items-center"><i class="fa-solid fa-lightbulb text-yellow-500 mr-2 text-lg"></i>시니어 AE의 가이드 팁</p>
+                <p class="text-sm text-blue-700 mt-2">데이터를 기준(차원)과 타겟팅(세그먼트), 그리고 성과(메트릭)로 구분하면 다차원 분석이 가능한 대시보드 로직이 자동 생성됩니다.</p>
+            </div>
+            
+            <div class="space-y-6 mb-6">
+                <!-- Group 1: 차원 -->
+                <div>
+                    <h3 class="text-sm font-bold text-indigo-700 mb-3 border-b pb-1">기준(차원) 지표</h3>
+                    <div class="cb-container">
+                        <label><input type="checkbox" class="hidden data-cb data-dim" value="날짜" checked> <span class="cb-label">📅 날짜</span></label>
+                    </div>
+                </div>
+                <!-- Group 2: 세그먼트 -->
+                <div>
+                    <h3 class="text-sm font-bold text-indigo-700 mb-3 border-b pb-1">타겟팅/분류(세그먼트) 지표</h3>
+                    <div class="cb-container">
+                        <label><input type="checkbox" class="hidden data-cb data-seg" value="매체" checked> <span class="cb-label">🌐 매체</span></label>
+                        <label><input type="checkbox" class="hidden data-cb data-seg" value="광고유형" checked> <span class="cb-label">🏷️ 광고유형</span></label>
+                        <label><input type="checkbox" class="hidden data-cb data-seg" value="디바이스"> <span class="cb-label">📱 디바이스</span></label>
+                        <label><input type="checkbox" class="hidden data-cb data-seg" value="광고그룹"> <span class="cb-label">📁 광고그룹</span></label>
+                        <label><input type="checkbox" class="hidden data-cb data-seg" value="소재라벨명"> <span class="cb-label">🖼️ 소재라벨명</span></label>
+                        <label><input type="checkbox" class="hidden data-cb data-seg" value="키워드"> <span class="cb-label">🔑 키워드</span></label>
+                    </div>
+                </div>
+                <!-- Group 3: 성과/메트릭 -->
+                <div>
+                    <h3 class="text-sm font-bold text-indigo-700 mb-3 border-b pb-1">성과/효율(메트릭) 지표</h3>
+                    <div class="cb-container">
+                        <label><input type="checkbox" class="hidden data-cb data-met" value="노출수"> <span class="cb-label">👁️ 노출수</span></label>
+                        <label><input type="checkbox" class="hidden data-cb data-met" value="클릭수"> <span class="cb-label">👆 클릭수</span></label>
+                        <label><input type="checkbox" class="hidden data-cb data-met" value="광고비용" checked> <span class="cb-label">💰 광고비용</span></label>
+                        <label><input type="checkbox" class="hidden data-cb data-met" value="CTR"> <span class="cb-label">CTR</span></label>
+                        <label><input type="checkbox" class="hidden data-cb data-met" value="CPC"> <span class="cb-label">CPC</span></label>
+                        <label><input type="checkbox" class="hidden data-cb data-met" value="전환수" checked> <span class="cb-label">🎯 전환수</span></label>
+                        <label><input type="checkbox" class="hidden data-cb data-met" value="전환값"> <span class="cb-label">💎 전환값</span></label>
+                        <label><input type="checkbox" class="hidden data-cb data-met" value="CPA"> <span class="cb-label">CPA</span></label>
+                        <label><input type="checkbox" class="hidden data-cb data-met" value="CVR"> <span class="cb-label">CVR</span></label>
+                        <label><input type="checkbox" class="hidden data-cb data-met" value="ROAS" checked> <span class="cb-label">📈 ROAS</span></label>
+                    </div>
+                </div>
+                <!-- Custom -->
+                <div>
+                    <h3 class="text-sm font-bold text-gray-700 mb-3 border-b pb-1">기타 지표 직접 추가</h3>
+                    <input type="text" id="custom-data" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 border text-sm" placeholder="기타 지표를 쉼표(,)로 구분하여 입력하세요.">
+                </div>
+            </div>
+            
+            <div class="flex justify-between mt-4 pt-4 border-t">
+                <button onclick="goToStep(1)" class="text-gray-500 hover:text-gray-900 font-medium px-4 py-2 rounded-lg hover:bg-gray-100 transition"><i class="fa-solid fa-arrow-left mr-2"></i>이전</button>
+                <button onclick="prepareStep3()" class="bg-indigo-600 text-white font-bold px-8 py-3 rounded-xl shadow-lg hover:bg-indigo-700 transition transform hover:-translate-y-0.5">다음 단계 <i class="fa-solid fa-arrow-right ml-2"></i></button>
+            </div>
+        </div>
+
+        <!-- Step 3: Core Layout -->
+        <div id="step-3" class="step-hidden">
+            <h2 class="text-3xl font-bold mb-2">3. 시각화 기획 (Core Layout)</h2>
+            <p class="text-gray-500 mb-6">보고 싶은 차트를 추가하고, 해당 차트에 포함할 지표들을 다중 선택(조합)해 주세요.</p>
+            
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded-r-lg shadow-sm">
+                <p class="font-bold text-blue-800 flex items-center"><i class="fa-solid fa-lightbulb text-yellow-500 mr-2 text-lg"></i>시니어 AE의 가이드 팁</p>
+                <p class="text-sm text-blue-700 mt-2">하나의 차트에 여러 지표를 조합하면 분석 시너지가 납니다. 어떤 차트를 쓸지 고민된다면 <b>[AI 추천]</b> 버튼을 활용해 보세요!</p>
+            </div>
+            
+            <div id="chart-blocks-container" class="space-y-4 mb-6">
+                <!-- Javascript will populate chart blocks here -->
+            </div>
+            
+            <button onclick="addChartBlock()" class="w-full py-3 border-2 border-dashed border-gray-300 text-gray-500 rounded-xl hover:border-indigo-500 hover:text-indigo-600 font-bold transition flex items-center justify-center mb-6">
+                <i class="fa-solid fa-plus mr-2"></i>차트 블록 추가하기
+            </button>
+            
+            <div class="flex justify-between mt-4 pt-4 border-t">
+                <button onclick="goToStep(2)" class="text-gray-500 hover:text-gray-900 font-medium px-4 py-2 rounded-lg hover:bg-gray-100 transition"><i class="fa-solid fa-arrow-left mr-2"></i>이전</button>
+                <button onclick="goToStep(4)" class="bg-indigo-600 text-white font-bold px-8 py-3 rounded-xl shadow-lg hover:bg-indigo-700 transition transform hover:-translate-y-0.5">다음 단계 <i class="fa-solid fa-arrow-right ml-2"></i></button>
+            </div>
+        </div>
+
+        <!-- Step 4: Tech Stack -->
+        <div id="step-4" class="step-hidden">
+            <h2 class="text-3xl font-bold mb-2">4. 기술 스택 (Tech Stack)</h2>
+            <p class="text-gray-500 mb-6">대시보드 개발에 사용할 기술 세트를 선택해 주세요.</p>
+            
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded-r-lg shadow-sm">
+                <p class="font-bold text-blue-800 flex items-center"><i class="fa-solid fa-lightbulb text-yellow-500 mr-2 text-lg"></i>시니어 AE의 추천</p>
+                <p class="text-sm text-blue-700 mt-2">빠른 프로토타이핑과 데이터 시각화에는 <b>Streamlit</b>이 압도적으로 유리합니다. 하지만 복잡한 유저 권한 관리가 필요하다면 <b>Django</b> 기반이 장기적으로 안전합니다.</p>
+            </div>
+            
+            <div class="space-y-4 mb-6">
+                <label class="block relative">
+                    <input type="radio" name="tech_stack" value="Python + Streamlit + Plotly" class="hidden" checked>
+                    <div class="radio-card">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="inline-block bg-red-100 text-red-700 text-xs px-2 py-1 rounded font-bold mb-2">🔥 강력 추천</span>
+                                <h4 class="text-lg font-bold">Python + Streamlit + Plotly</h4>
+                                <p class="text-sm text-gray-500 mt-1">데이터 분석가와 마케터가 가장 빠르게 실무 대시보드를 배포할 수 있는 조합입니다.</p>
+                            </div>
+                            <i class="fa-brands fa-python text-3xl text-gray-300"></i>
+                        </div>
+                    </div>
+                </label>
+
+                <label class="block relative">
+                    <input type="radio" name="tech_stack" value="Python + Django + Plotly" class="hidden">
+                    <div class="radio-card">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="inline-block bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded font-bold mb-2">🏢 대용량/엔터프라이즈 추천</span>
+                                <h4 class="text-lg font-bold">Python + Django + Plotly</h4>
+                                <p class="text-sm text-gray-500 mt-1">인증, DB 스키마 관리, 복잡한 비즈니스 로직 확장이 필요한 경우 적합합니다.</p>
+                            </div>
+                            <i class="fa-solid fa-server text-3xl text-gray-300"></i>
+                        </div>
+                    </div>
+                </label>
+
+                <label class="block relative">
+                    <input type="radio" name="tech_stack" value="custom" class="hidden" id="radio-custom">
+                    <div class="radio-card">
+                        <div class="flex justify-between items-start w-full">
+                            <div class="w-full">
+                                <h4 class="text-lg font-bold mb-2">직접 입력</h4>
+                                <input type="text" id="tech-custom-input" class="w-full border-gray-300 rounded p-2 border text-sm" placeholder="예: React + Node.js + Recharts" onclick="document.getElementById('radio-custom').checked = true;">
+                            </div>
+                        </div>
+                    </div>
+                </label>
+            </div>
+            
+            <div class="flex justify-between mt-4 pt-4 border-t">
+                <button onclick="goToStep(3)" class="text-gray-500 hover:text-gray-900 font-medium px-4 py-2 rounded-lg hover:bg-gray-100 transition"><i class="fa-solid fa-arrow-left mr-2"></i>이전</button>
+                <button onclick="generatePrompt()" class="bg-green-600 text-white font-bold px-8 py-3 rounded-xl shadow-lg hover:bg-green-700 transition transform hover:-translate-y-0.5 flex items-center">
+                    프롬프트 생성하기 <i class="fa-solid fa-wand-magic-sparkles ml-2"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 5: Loading / Result -->
+        <div id="step-5" class="step-hidden">
+            
+            <!-- Loading State -->
+            <div id="loading" class="flex flex-col items-center justify-center py-20">
+                <div class="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-indigo-600 mb-6"></div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">프롬프트 최적화 중...</h3>
+                <p class="text-gray-500">Gemini AI가 시니어 AE의 관점으로 마크다운 구조를 조립하고 있습니다.</p>
+            </div>
+
+            <!-- Result State -->
+            <div id="result-container" class="hidden flex-col">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-3xl font-bold text-green-600 flex items-center"><i class="fa-solid fa-circle-check mr-3"></i>완성되었습니다!</h2>
+                    <button id="copy-btn" onclick="copyToClipboard()" class="bg-gray-800 text-white font-bold px-5 py-2 rounded-lg shadow hover:bg-gray-900 transition flex items-center">
+                        <i class="fa-regular fa-copy mr-2"></i>클립보드 복사
+                    </button>
+                </div>
+                
+                <div class="bg-yellow-50 border border-yellow-200 p-3 rounded-lg text-yellow-800 text-sm mb-4 font-medium flex items-start">
+                    <i class="fa-solid fa-circle-info mt-0.5 mr-2"></i> 
+                    <div>이 프롬프트는 <b>계층형 마크다운 구조</b>로 최적화되었습니다.<br>바로 복사하여 AI(앤티그래비티, Claude 등)에게 전달하면 완벽한 대시보드 코드를 짜줍니다.</div>
+                </div>
+
+                <textarea id="raw-markdown" class="hidden"></textarea>
+
+                <div class="bg-gray-50 border border-gray-200 rounded-xl p-6 shadow-inner relative">
+                    <div id="markdown-preview" class="markdown-body">
+                        <!-- Rendered markdown goes here -->
+                    </div>
+                </div>
+                
+                <div class="mt-6 pt-4 border-t text-center">
+                    <button onclick="location.reload()" class="text-indigo-600 font-bold hover:text-indigo-800 hover:underline"><i class="fa-solid fa-rotate-right mr-1"></i>새로운 프로젝트 시작하기</button>
+                </div>
+            </div>
+            
+        </div>
+        
+    </main>
+</div>
+
+<script>
+    let globalSelectedMetrics = [];
+    let chartBlockCount = 0;
+
+    // Navigation Logic
+    function updateSidebar(step) {
+        for(let i=1; i<=5; i++) {
+            let nav = document.getElementById('nav-' + i);
+            if(nav) {
+                nav.className = 'sidebar-item p-3 rounded-r-lg text-sm text-gray-500'; // reset
+                if (i < step) {
+                    nav.classList.add('sidebar-completed');
+                } else if (i === step) {
+                    nav.classList.add('sidebar-active');
+                }
+            }
+        }
+    }
+
+    function goToStep(step) {
+        document.querySelectorAll('[id^="step-"]').forEach(el => {
+            el.classList.remove('step-active');
+            el.classList.add('step-hidden');
+        });
+        document.getElementById('step-' + step).classList.remove('step-hidden');
+        document.getElementById('step-' + step).classList.add('step-active');
+        updateSidebar(step);
+    }
+
+    // Step 2 logic
+    function getCategorizedSpecs() {
+        let dim = Array.from(document.querySelectorAll('.data-dim:checked')).map(cb => cb.value);
+        let seg = Array.from(document.querySelectorAll('.data-seg:checked')).map(cb => cb.value);
+        let met = Array.from(document.querySelectorAll('.data-met:checked')).map(cb => cb.value);
+        let custom = document.getElementById('custom-data').value.trim();
+        if(custom) {
+            custom.split(',').forEach(item => {
+                if(item.trim()) met.push(item.trim()); // defaults to metric
+            });
+        }
+        return { dim, seg, met, all: [...dim, ...seg, ...met] };
+    }
+
+    // Step 3 logic
+    function prepareStep3() {
+        let specs = getCategorizedSpecs();
+        if(specs.all.length === 0) {
+            alert('최소 1개 이상의 데이터 지표를 선택해주세요.');
+            return;
+        }
+        globalSelectedMetrics = specs.all;
+
+        let container = document.getElementById('chart-blocks-container');
+        if(container.innerHTML.trim() === '') {
+            // Add default blocks
+            addChartBlock("핵심 지표 요약(Metric Scorecard)", specs.met);
+            addChartBlock("월별/일별 성과 추이 그래프", specs.met);
+        } else {
+            // Update metrics in existing blocks if user went back and changed Step 2
+            updateChartBlockMetrics();
+        }
+        
+        goToStep(3);
+    }
+
+    function addChartBlock(defaultTitle = "", preSelectedMetrics = []) {
+        chartBlockCount++;
+        let blockId = `chart-block-${chartBlockCount}`;
+        
+        let container = document.getElementById('chart-blocks-container');
+        
+        let metricsHtml = globalSelectedMetrics.map(m => {
+            let checked = preSelectedMetrics.includes(m) ? 'checked' : '';
+            return `
+            <label class="inline-block">
+                <input type="checkbox" class="hidden chart-metric-cb" value="${m}" ${checked}>
+                <span class="metric-badge">${m} <i class="fa-solid fa-check ml-1 hidden"></i></span>
+            </label>
+            `;
+        }).join('');
+
+        let block = document.createElement('div');
+        block.className = 'bg-white border border-gray-200 rounded-xl p-5 shadow-sm';
+        block.id = blockId;
+        block.innerHTML = `
+            <div class="flex justify-between items-start mb-4 border-b pb-3">
+                <input type="text" class="chart-title-input font-bold text-gray-800 text-lg border-b-2 border-transparent focus:border-indigo-500 focus:outline-none bg-transparent w-2/3" placeholder="예: 메인 성과 분석 차트" value="${defaultTitle}">
+                <button onclick="document.getElementById('${blockId}').remove()" class="text-gray-400 hover:text-red-500 text-sm"><i class="fa-solid fa-trash"></i> 삭제</button>
+            </div>
+            
+            <div class="mb-4">
+                <div class="text-sm font-bold text-indigo-700 mb-2">1. 차트에 포함할 지표 선택 (다중 선택)</div>
+                <div class="chart-metrics-container flex flex-wrap gap-1">
+                    ${metricsHtml}
+                </div>
+            </div>
+
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div class="flex justify-between items-center mb-3">
+                    <div class="text-sm font-bold text-gray-700">2. 시각화 요소 선택</div>
+                    <button type="button" onclick="recommendChart('${blockId}')" class="bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-1.5 rounded-full hover:bg-indigo-200 transition flex items-center">
+                        <i class="fa-solid fa-robot mr-1.5"></i> AI 추천 받기
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-2 mb-3">
+                    <label class="flex items-center text-sm"><input type="radio" name="chart_type_${blockId}" value="스코어카드 (Metric Card)" class="mr-2 text-indigo-600 focus:ring-indigo-500"> 스코어카드(Metric)</label>
+                    <label class="flex items-center text-sm"><input type="radio" name="chart_type_${blockId}" value="라인 차트 (Line Chart)" class="mr-2 text-indigo-600 focus:ring-indigo-500" checked> 라인 차트(Line)</label>
+                    <label class="flex items-center text-sm"><input type="radio" name="chart_type_${blockId}" value="바 차트 (Bar Chart)" class="mr-2 text-indigo-600 focus:ring-indigo-500"> 바 차트(Bar)</label>
+                    <label class="flex items-center text-sm"><input type="radio" name="chart_type_${blockId}" value="이중 축 복합 차트 (Dual-axis Combo Chart)" class="mr-2 text-indigo-600 focus:ring-indigo-500"> 이중 축 복합 차트(Combo)</label>
+                    <label class="flex items-center text-sm"><input type="radio" name="chart_type_${blockId}" value="도넛 차트 (Donut Chart)" class="mr-2 text-indigo-600 focus:ring-indigo-500"> 도넛 차트(Donut)</label>
+                    <label class="flex items-center text-sm"><input type="radio" name="chart_type_${blockId}" value="영역 차트 (Area Chart)" class="mr-2 text-indigo-600 focus:ring-indigo-500"> 영역 차트(Area)</label>
+                </div>
+                
+                <div class="ai-recommendation-msg hidden bg-indigo-50 border border-indigo-100 text-indigo-800 text-xs p-3 rounded-lg mt-2 font-medium">
+                    <!-- AI recommendation text here -->
+                </div>
+            </div>
+        `;
+        container.appendChild(block);
+    }
+
+    function recommendChart(blockId) {
+        let block = document.getElementById(blockId);
+        let selectedMetrics = Array.from(block.querySelectorAll('.chart-metric-cb:checked')).map(cb => cb.value);
+        let msgBox = block.querySelector('.ai-recommendation-msg');
+        let radioBtns = block.querySelectorAll(`input[name="chart_type_${blockId}"]`);
+        
+        if(selectedMetrics.length === 0) {
+            alert('먼저 지표를 선택해 주세요!');
+            return;
+        }
+
+        const rates = ['CTR', 'ROAS', 'CVR'];
+        const segments = ['매체', '광고유형', '디바이스', '광고그룹', '소재라벨명', '키워드'];
+        const absolutes = ['노출수', '클릭수', '광고비용', '전환수', '전환값', 'CPA', 'CPC']; // Some cost per metric is rate-like but usually absolutes
+
+        let hasRate = selectedMetrics.some(m => rates.some(r => m.toUpperCase().includes(r)));
+        let hasSegment = selectedMetrics.some(m => segments.includes(m));
+        let hasAbsolute = selectedMetrics.some(m => absolutes.some(a => m.includes(a)));
+
+        msgBox.classList.remove('hidden');
+
+        // Rule 2: 이중 축 복합 차트
+        if (hasRate && hasAbsolute && selectedMetrics.length > 1) {
+            radioBtns.forEach(r => r.checked = r.value.includes('Combo'));
+            msgBox.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles mr-1"></i> 금액(원)과 비율(%)은 단위가 다르므로, 좌우 Y축을 모두 쓰는 이중 축 복합 차트를 추천합니다!';
+            return;
+        }
+        
+        // Rule 3: 도넛 차트
+        if (hasSegment && hasAbsolute) {
+            radioBtns.forEach(r => r.checked = r.value.includes('Donut'));
+            msgBox.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles mr-1"></i> 항목별 성과 비중이나 셰어(Share)를 볼 때는 도넛 차트를 추천합니다!';
+            return;
+        }
+
+        // Rule 1: 바 / 라인 차트
+        if (selectedMetrics.length <= 2) {
+            radioBtns.forEach(r => r.checked = r.value.includes('Bar'));
+            msgBox.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles mr-1"></i> 지표의 규모와 추이를 직관적으로 비교하기 좋은 막대(Bar) 또는 선(Line) 그래프를 추천합니다!';
+            return;
+        }
+
+        // Default Fallback
+        radioBtns.forEach(r => r.checked = r.value.includes('Line'));
+        msgBox.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles mr-1"></i> 시계열 트렌드를 볼 때는 라인 차트가 무난합니다!';
+    }
+
+    function updateChartBlockMetrics() {
+        document.querySelectorAll('.chart-metrics-container').forEach(container => {
+            // keep currently checked
+            let currentlyChecked = Array.from(container.querySelectorAll('.chart-metric-cb:checked')).map(cb => cb.value);
+            
+            let metricsHtml = globalSelectedMetrics.map(m => {
+                let checked = currentlyChecked.includes(m) ? 'checked' : '';
+                return `
+                <label class="inline-block">
+                    <input type="checkbox" class="hidden chart-metric-cb" value="${m}" ${checked}>
+                    <span class="metric-badge">${m} <i class="fa-solid fa-check ml-1 hidden"></i></span>
+                </label>
+                `;
+            }).join('');
+            container.innerHTML = metricsHtml;
+        });
+    }
+
+    // Submit Logic
+    async function generatePrompt() {
+        const role = document.querySelector('input[name="role_persona"]:checked').value;
+        const specs = getCategorizedSpecs();
+        
+        let data_spec = JSON.stringify(specs); // pass structured data to backend
+        
+        // Collect layouts
+        let layouts = [];
+        document.querySelectorAll('[id^="chart-block-"]').forEach(block => {
+            let title = block.querySelector('.chart-title-input').value || '메인 성과 분석 차트';
+            let selected = Array.from(block.querySelectorAll('.chart-metric-cb:checked')).map(cb => cb.value);
+            let chartTypeObj = block.querySelector(`input[name="chart_type_${block.id}"]:checked`);
+            let chartType = chartTypeObj ? chartTypeObj.value : '라인 차트 (Line Chart)';
+            
+            if(selected.length > 0) {
+                let detailMsg = '';
+                if(chartType.includes('Combo')) {
+                    detailMsg = '절대치(수량/금액) 지표는 세로 막대(Bar)로 표현하고, 비율(%) 지표는 우측 Y축을 사용하는 꺾은선(Line) 그래프로 콤비네이션 처리하여 한눈에 트렌드를 볼 수 있게 할 것.';
+                } else if(chartType.includes('Donut')) {
+                    detailMsg = '선택된 분류(세그먼트)에 따른 성과 지표의 비중(Share)을 직관적인 링 모양의 도넛 차트로 보여줄 것.';
+                } else {
+                    detailMsg = '선택된 지표들을 명확하게 구분할 수 있도록 툴팁과 범례(Legend)를 제공하여 시각화할 것.';
+                }
+
+                layouts.push(`* **${title}:**\n  - **선택된 지표:** ${selected.join(', ')}\n  - **시각화 형태:** **${chartType}**\n  - **시각화 디테일:** ${detailMsg}\n`);
+            }
+        });
+        
+        if(layouts.length === 0) {
+            alert('최소 1개 이상의 차트와 지표를 설정해주세요.');
+            return;
+        }
+        
+        const core_layout = layouts.join('\n');
+
+        // Tech stack
+        let tech_stack = document.querySelector('input[name="tech_stack"]:checked').value;
+        if(tech_stack === 'custom') {
+            tech_stack = document.getElementById('tech-custom-input').value || '기본 스택';
+        }
+
+        // Show loading
+        goToStep(5);
+        document.getElementById('loading').style.display = 'flex';
+        document.getElementById('result-container').style.display = 'none';
+
+        try {
+            const response = await fetch('/api/generate/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role, data_spec, core_layout, tech_stack })
+            });
+
+            const result = await response.json();
+            
+            if (response.ok && result.prompt) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('result-container').style.display = 'flex';
+                
+                document.getElementById('raw-markdown').value = result.prompt;
+                document.getElementById('markdown-preview').innerHTML = marked.parse(result.prompt);
+            } else {
+                throw new Error(result.error || '알 수 없는 오류');
+            }
+        } catch (error) {
+            alert('생성 중 오류가 발생했습니다: ' + error.message);
+            goToStep(4);
+        }
+    }
+
+    function copyToClipboard() {
+        const textToCopy = document.getElementById('raw-markdown').value;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            const btn = document.getElementById('copy-btn');
+            if (btn) {
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i>복사 완료!';
+                btn.classList.replace('bg-gray-800', 'bg-green-600');
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.classList.replace('bg-green-600', 'bg-gray-800');
+                }, 2000);
+            } else {
+                alert('클립보드에 복사되었습니다!');
+            }
+        }).catch(err => {
+            alert('복사에 실패했습니다: ' + err);
+        });
+    }
+</script>
+
+</body>
+</html>
